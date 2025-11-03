@@ -8,6 +8,8 @@ import torch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+from climb_util import make_climb_set
+
 
 # Preprocessing to get the average difficulty of each hold
 # TODO think about if we want to factor this in
@@ -48,31 +50,7 @@ class KilterDataset(Dataset):
             boardlib.db.aurora.download_database('kilter', self.database)
         # Make sure we have the dataset of climbs and token labels
         if download and not os.path.exists(climb_data_path):
-            with sqlite3.connect(self.database) as conn:
-                # get the specified dataset from the Kilterboard database
-                climb_df = pd.read_sql_query(
-                    r'SELECT climb_uuid, difficulty_average, frames FROM climbs JOIN climb_stats on climbs.uuid = climb_stats.climb_uuid WHERE climbs.angle=40 AND layout_id=1 AND ascensionist_count >= 5 AND quality_average > 1',
-                    conn
-                )
-                with open(climb_data_path, 'w', newline='') as climb_set_file:
-                    writer = csv.writer(climb_set_file)
-                    # Convert hold labels to tokens
-                    token_dict = dict()
-                    token_dict['BOSr12'] = 0
-                    token_dict['EOSr14'] = 1
-                    token = 2
-                    for row in climb_df.itertuples():
-                        frames = row.frames.split(',')[0]
-                        label_seq = frames.split('p')[1:]
-                        for label in label_seq:
-                            if label not in token_dict:
-                                token_dict[label] = token
-                                token += 1
-                        seq = [token_dict[label] for label in label_seq]
-                        seq.insert(0, 0)
-                        seq.append(1)
-                        writer.writerow([row.climb_uuid, row.difficulty_average] + seq)
-                    pd.DataFrame.from_dict(data=token_dict, orient='index').to_csv(token_dict_path, header=False)
+            make_climb_set(self.root)
 
         token_df = pd.read_csv(token_dict_path, header=None, names=["label", "token"])
         self.token_dict = dict(zip(token_df.label, token_df.token))
