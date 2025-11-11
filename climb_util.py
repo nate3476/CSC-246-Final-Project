@@ -5,6 +5,7 @@ import matplotlib.markers
 import pandas as pd
 import matplotlib.pyplot as plt
 import boardlib.api.aurora
+import torch
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
@@ -136,6 +137,38 @@ def show_climb(climb, root, download=True):
     plt.imshow(feet_img, origin='upper', extent=(-24, 168, 0, 156))
 
     plt.show()
+
+
+def climb_one_hot(batch, root, download=True):
+    """
+    Given a batch of climbs (encoded as sequences of tokens), return the same batch with each climb one-hot-encoded
+    :param batch: a torch tensor of size [batch_size, max_seq_length]
+    :param root: the directory containing the Kilterboard database and token_dict csv
+    :param download: whether to download the Kilterboard database or token_dict csv if they aren't present
+    :return: a torch tensor of size [batch_size, total_num_tokens] which is the one-hot encoding of each climb
+    """
+    # make sure the Kilterboard database is present
+    database = os.path.join(root, 'KilterDatabase.db')
+    if download and not os.path.exists(database):
+        download_database(root)
+
+    # make sure the token_dict is present
+    token_dict_path = os.path.join(root, 'token_dict.csv')
+    if download and not os.path.exists(token_dict_path):
+        make_climb_set(root)
+    # get the mapping of tokens to holds
+    label_dict = get_label_dict(token_dict_path)
+
+    seqs = batch.tolist()
+    one_hots = []
+
+    for climb in seqs:
+        one_hot = [0] * len(label_dict)
+        for token in climb:
+            if token > 0:
+                one_hot[token] = 1
+        one_hots.append(one_hot)
+    return torch.tensor(one_hots)
 
 
 def main():
