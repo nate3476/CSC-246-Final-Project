@@ -1,1 +1,8 @@
 this is technically just the place where i will put my comments on my current code/work
+
+
+I currently have encoder.py as a basic classification model using nn.TransformerEncoder and then using connecting that with a classification head (fc here) and it will be used to classify the difficulty of a given hold.
+
+Next goal:
+
+I need to fix/update my train data to allow the encoder to train on the dataset.
