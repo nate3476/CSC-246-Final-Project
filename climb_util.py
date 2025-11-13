@@ -105,8 +105,8 @@ def show_climb(climb, root, download=True):
 
     # set the background to be all black
     fig, ax = plt.subplots()
-    fig.patch.set_facecolor('black')
-    ax.set_facecolor('black')
+    fig.patch.set_facecolor('dimgrey')
+    ax.set_facecolor('dimgrey')
 
     # mapping from color labels to the display color
     color_map = {
@@ -125,6 +125,7 @@ def show_climb(climb, root, download=True):
         label, color = hold.split('r')
         points.append(point_dict[int(label)])
         colors.append(color_map[int(color)])
+        ax.annotate(climb[index], point_dict[int(label)], color='red')
         index += 1
     x, y = zip(*points)
     marker_style = matplotlib.markers.MarkerStyle(marker='o', fillstyle='none')

@@ -101,7 +101,7 @@ def climb_collate_fn(batch):
 
     # convert difficulties to a tensor
     diffs = torch.tensor(diffs, dtype=torch.float)
-    # pad sequences to the same length with -infty
+    # pad sequences to the same length with -1
     padded_seqs = torch.nn.utils.rnn.pad_sequence(seqs, batch_first=True, padding_value=-1)
 
     return {'uuids': uuids, 'diffs': diffs, 'seqs': padded_seqs}
