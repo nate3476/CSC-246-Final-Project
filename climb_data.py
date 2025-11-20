@@ -93,7 +93,7 @@ def climb_collate_fn(batch):
     """
     Custom collate_fn which pads the hold sequences to the same length
     :param batch: input batch of climb_uuids, difficulties, and hold sequences
-    :return: batch with the hold sequences padded to the max length with EOS tokens
+    :return: batch with the hold sequences padded to the max length with EOS tokens, as well as the boolean padding mask
     """
     uuids = [item[0] for item in batch]
     grades = [item[1] for item in batch]
@@ -103,8 +103,10 @@ def climb_collate_fn(batch):
     grades = torch.tensor(grades, dtype=torch.float)
     # pad sequences to the same length with -1
     padded_seqs = torch.nn.utils.rnn.pad_sequence(seqs, batch_first=True, padding_value=-1)
+    # keep track of the sequence of padding
+    pad_mask = (padded_seqs == -1)  # boolean, true where there was padding and false else
 
-    return {'uuids': uuids, 'grades': grades, 'seqs': padded_seqs}
+    return {'uuids': uuids, 'grades': grades, 'seqs': padded_seqs, "pad_mask": pad_mask}
 
 
 def main():
