@@ -43,12 +43,12 @@ def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     model.train()
     for num, batch in enumerate(dataloader):
-        diffs = batch['diffs'].to(device).float().unsqueeze(1)  # unsqueeze to ensure this is dim [batch_size,1]
+        grades = batch['grades'].to(device).float().unsqueeze(1)  # unsqueeze to ensure this is dim [batch_size,1]
         seqs = batch['seqs'].to(device)
 
         # Compute prediction error
         pred = model(seqs)
-        loss = loss_fn(pred, diffs)
+        loss = loss_fn(pred, grades)
 
         # Backpropagate
         loss.backward()
@@ -67,12 +67,12 @@ def test(dataloader, model, loss_fn):
     avg_loss, mse = 0, 0
     with torch.no_grad():
         for batch in dataloader:
-            diffs = batch['diffs'].to(device).float().unsqueeze(1)  # unsqueeze to ensure this is dim [batch_size,1]
+            grades = batch['grades'].to(device).float().unsqueeze(1)  # unsqueeze to ensure this is dim [batch_size,1]
             seqs = batch['seqs'].to(device)
             preds = model(seqs)
-            loss = loss_fn(preds, diffs).item()
+            loss = loss_fn(preds, grades).item()
             avg_loss += loss
-            mse += torch.mean((preds - diffs) ** 2).item()
+            mse += torch.mean((preds - grades) ** 2).item()
     avg_loss /= num_batches
     mse /= size
     print(f"Test Error: \n MSE: {mse}, Avg loss: {avg_loss:>8f} \n")

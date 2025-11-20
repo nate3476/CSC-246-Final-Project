@@ -67,7 +67,7 @@ class KilterDataset(Dataset):
 
         # convert to tensors
         self.uuids = climb_df.iloc[:, 0].tolist()
-        self.diffs = climb_df.iloc[:, 1].astype(float).tolist()
+        self.grades = climb_df.iloc[:, 1].astype(float).tolist()
         self.seqs = [
             torch.tensor([int(x) for x in row.dropna().iloc[2:]])
             for _, row in climb_df.iterrows()
@@ -83,10 +83,10 @@ class KilterDataset(Dataset):
         :return: The climb at that index, giving the climb uuid, difficulty, and a sequence of pairs (hold_id, role_id)
         """
         uuid = self.uuids[idx]
-        diff = self.diffs[idx]
+        grade = self.grades[idx]
         seq = self.seqs[idx]
 
-        return uuid, diff, seq
+        return uuid, grade, seq
 
 
 def climb_collate_fn(batch):
@@ -96,15 +96,15 @@ def climb_collate_fn(batch):
     :return: batch with the hold sequences padded to the max length with EOS tokens
     """
     uuids = [item[0] for item in batch]
-    diffs = [item[1] for item in batch]
+    grades = [item[1] for item in batch]
     seqs = [item[2] for item in batch]
 
     # convert difficulties to a tensor
-    diffs = torch.tensor(diffs, dtype=torch.float)
+    grades = torch.tensor(grades, dtype=torch.float)
     # pad sequences to the same length with -1
     padded_seqs = torch.nn.utils.rnn.pad_sequence(seqs, batch_first=True, padding_value=-1)
 
-    return {'uuids': uuids, 'diffs': diffs, 'seqs': padded_seqs}
+    return {'uuids': uuids, 'grades': grades, 'seqs': padded_seqs}
 
 
 def main():
@@ -112,9 +112,9 @@ def main():
     dataloader = DataLoader(dataset, batch_size=64, shuffle=True, collate_fn=climb_collate_fn)
     for batch in dataloader:
         uuids = batch['uuids']
-        diffs = batch['diffs']
+        grades = batch['grades']
         seqs = batch['seqs']
-        print(uuids[0], diffs[0], seqs[0])
+        print(uuids[0], grades[0], seqs[0])
         break
 
 
