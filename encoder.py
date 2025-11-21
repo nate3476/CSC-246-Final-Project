@@ -12,7 +12,7 @@ class ClimbEncoder(nn.Module):
         #This is the "model" we will use for classification
         encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=8)
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=8)
-        self.fc = nn.Linear(256, 20)  
+        self.fc = nn.Linear(256, 11)  
 
     def forward(self, input):
 
