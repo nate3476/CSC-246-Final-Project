@@ -25,6 +25,6 @@ class ClimbEncoder(nn.Module):
 
         #result = self.fc(pooled)
 
-        return result, encoded
+        return encoded
 
     
