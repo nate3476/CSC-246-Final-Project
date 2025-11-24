@@ -105,7 +105,7 @@ class ClimbDecoder(nn.Module):
 
         mem = memory.size(0)
 
-        gen_seq = torch.full(mem, 1), bos_token, dtype=torch.long, device=device
+        gen_seq = torch.full((mem, 1), bos_token, dtype=torch.long, device=device)
 
         for i in range(max_len):
 
