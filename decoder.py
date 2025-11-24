@@ -92,32 +92,32 @@ class ClimbDecoder(nn.Module):
         logits = self.fc_out(out) # size (B, T, vocab_size)
         return logits
 
-        def generate(self, memory, max_len=128, bos_token=0, eos_token=1, device=None):
-          """
-           inputs are:
-            memory: (B, S, embed_dim) encoder output
-            max_len: maximum sequence length to generate
-            bos_token: start-of-sequence token
-            eos_token: end-of-sequence token
-       ]  output is: 
-            generated_seq: (B, T_gen) generated token indices
-            """
+    def generate(self, memory, max_len=128, bos_token=0, eos_token=1, device=None):
+        """
+        inputs are:
+        memory: (B, S, embed_dim) encoder output
+        max_len: maximum sequence length to generate
+        bos_token: start-of-sequence token
+        eos_token: end-of-sequence token
+    ]  output is: 
+        generated_seq: (B, T_gen) generated token indices
+        """
 
-            mem = memory.size(0)
+        mem = memory.size(0)
 
-            gen_seq = torch.full(mem, 1), bos_token, dtype=torch.long, device=device
+        gen_seq = torch.full(mem, 1), bos_token, dtype=torch.long, device=device
 
-          for i in range(max_len):
+        for i in range(max_len):
 
-            logits = self.forward(gen_seq, memory)
+        logits = self.forward(gen_seq, memory)
 
-            next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)  
+        next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)  
 
-            gen_seq = torch.cat([gen_seq, next_token], dim=1)
+        gen_seq = torch.cat([gen_seq, next_token], dim=1)
 
-            if (next_token == eos_token).all():
+        if (next_token == eos_token).all():
         
-              break
+            break
 
-          return gen_seq
+        return gen_seq
  
