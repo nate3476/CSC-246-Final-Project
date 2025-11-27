@@ -36,11 +36,12 @@ def main():
 
     encoder = ClimbEncoder(vocab_size).to(device)
     decoder = ClimbDecoder(vocab_size=vocab_size, n_grades=n_grades).to(device)
-
+    past_epochs = 0
     if os.path.exists(args.model_path) and (args.train == 0 or args.load == True):
         print(f"Loading model from {args.model_path}")
         loaded_model = torch.load(args.model_path, map_location=device)
         decoder.load_state_dict(loaded_model['model_state_dict'])
+        past_epochs = loaded_model['epoch']
         print(f"Loaded model from epoch {loaded_model.get('epoch', 'unknown')}")
     elif args.train == 0:
         print(f"Warning: No saved model found at {args.model_path}. Using untrained model.")
@@ -54,17 +55,18 @@ def main():
         for _ in range(args.train):
             train_loss, train_acc = train_epoch(decoder, training_dataloader, optimizer, criterion, device)
             print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%")
-
+        
         # save the model (I looked up how to do this)
         os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
         torch.save({
-            'epoch': args.train,
+            'epoch': (args.train + past_epochs),
             'model_state_dict': decoder.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'train_loss': train_loss,
             'vocab_size': vocab_size,
             'n_grades': n_grades,
         }, args.model_path)
+        print(f"Total epochs over lifetime = {args.train + past_epochs}")
         print(f"\nModel saved to {args.model_path}")
 
     # get beginning and ending tokens
@@ -99,11 +101,9 @@ def main():
     # make sure the sequence ends in eos_token
     if gen_list[-1] != eos_token:
         gen_list += [eos_token]
-    show_climb(gen_list, 'data')
 
     print("the generated token ids for the climb is: ", gen_list)
     try:
-        # TODO: input data root here
         show_climb(gen_list, "data")
     except Exception as e:
         print(f"Could not visualize climb: {e}")
