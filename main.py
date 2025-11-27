@@ -6,7 +6,7 @@ from decoder import ClimbDecoder
 from climb_util import show_climb 
 import argparse 
 
-def main()
+def main():
   
   parser = argparse.ArgumentParser()
 
