@@ -26,7 +26,8 @@ class ClimbDecoder(nn.Module):
         super().__init__()
 
         ########### Embeddings ###########
-        self.token_embed = nn.Embedding(vocab_size, embed_dim) # maps token indices to vectors of length embed_dim
+        self.pad_idx = vocab_size
+        self.token_embed = nn.Embedding(vocab_size + 1, embed_dim) # maps token indices to vectors of length embed_dim
         self.pos_embed = nn.Embedding(max_seq_len, embed_dim) # learnable positional embedding for (up to) max_seq_len positions.
         self.grade_embed = nn.Embedding(n_grades, embed_dim) # maps difficulty tokens to vectors of length embed_dim.
 
@@ -49,11 +50,13 @@ class ClimbDecoder(nn.Module):
         self.fc_out = nn.Linear(embed_dim, vocab_size) # output from hidden states to the vocabulary. One logit per possible hold.
         # this is what we can calculate the loss of
 
-    def forward(self, input_seq, memory, pad_mask=None):
+        self.n_grades = n_grades
+
+    def forward(self, input_seq, grades=None, memory=None, pad_mask=None):
         '''
         input_seq: size (B, T) token indices
         grade_token: size (B) difficulties
-        pad_mask: size (B, T) boolean mask, true where there's padding. I'm a little unsure about this but saw it in a tutorial
+        pad_mask: size (B, T) boolean mask, true where there's padding.
         
         B is batch size, T is sequence length of input tensor
 
@@ -68,13 +71,24 @@ class ClimbDecoder(nn.Module):
         
         x = self.token_embed(input_seq) * self.embed_scale 
         x += self.pos_embed(positions) 
-        x += memory.unsqueeze(1)[:, :, :]  # add encoder memory as conditioning
+        # Add grade thing if it's there
+        if grades is not None:
+            if grades.dim() == 1:
+                grades = grades.unsqueeze(1)
+            # Convert float grades to integer indices (0-10 for grades)
+            # TODO: is this how we convert?
+            grade_indices = torch.clamp(grades.long(), 0, self.n_grades - 1)
+            grade_emb = self.grade_embed(grade_indices)  # (B, 1, embed_dim)
+            x += grade_emb 
+        # x += /*.unsqueeze(1)[:, :, :]  # add encoder /* as conditioning
         x = self.embed_dropout(x) 
 
         ########### Masking ###########
         causal_mask = generate_causal_mask(T, device=device) 
 
         ########### Decode ###########
+        if memory is None:
+            memory = torch.zeros(B, 1, x.size(-1), device=device) # dummy memory
         out = self.transformer(
             tgt=x,
             memory=memory,
@@ -87,30 +101,65 @@ class ClimbDecoder(nn.Module):
         logits = self.fc_out(out) 
         return logits
 
-    def generate(self, memory, max_len=128, bos_token=0, eos_token=1, device=None):
+    # def generate(self, memory, max_len=128, bos_token=0, eos_token=1, device=None):
+    #     """
+    #     inputs are:
+    #     memory: (B, S, embed_dim) encoder output
+    #     max_len: maximum sequence length to generate
+    #     bos_token: start-of-sequence token
+    #     eos_token: end-of-sequence token
+    # ]  output is: 
+    #     generated_seq: (B, T_gen) generated token indices
+    #     """
+
+    #     mem = memory.size(0)
+    #     gen_seq = torch.full((mem, 1), bos_token, dtype=torch.long, device=device)
+
+    #     for _ in range(max_len):
+    #         logits = self.forward(gen_seq, memory)
+    #         next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)  
+    #         gen_seq = torch.cat([gen_seq, next_token], dim=1)
+
+    #         if (next_token == eos_token).all():
+    #             break
+
+    #     return gen_seq
+
+    ##### generate function without conditioning #####
+    def generate(self, grade=None, max_len=128, bos_token=0, eos_token=1, temperature=1.0, device=None, memory=None):
         """
         inputs are:
-        memory: (B, S, embed_dim) encoder output
-        max_len: maximum sequence length to generate
-        bos_token: start-of-sequence token
-        eos_token: end-of-sequence token
-    ]  output is: 
-        generated_seq: (B, T_gen) generated token indices
+            max_len: maximum sequence length to generate
+            bos_token: start-of-sequence token
+            eos_token: end-of-sequence token
+            temperature: sampling temperature (1.0 = neutral, lower = more deterministic)
+        output is:
+            generated_seq: (1, T_gen) generated token indices
         """
+        self.eval() # get out of training mode
 
-        mem = memory.size(0)
+        gen_seq = torch.full((1, 1), bos_token, dtype=torch.long, device=device)
 
-        gen_seq = torch.full((mem, 1), bos_token, dtype=torch.long, device=device)
+        grade_tensor = None
+        if grade is not None:
+            if not isinstance(grade, torch.Tensor):
+                grade_tensor = torch.tensor([grade], dtype=torch.float, device=device)
+            else:
+                grade_tensor = grade.to(device)
 
-        for i in range(max_len):
+        print(f"generating climb with grade={grade}...")
+        for _ in range(max_len):
+            logits = self.forward(gen_seq, grades=grade_tensor, memory=memory)
 
-            logits = self.forward(gen_seq, memory)
-
-            next_token = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)  
+            next_token_logits = logits[:, -1, :] / temperature
+            
+            # sampling instead of argmax
+            probs = torch.softmax(next_token_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)
 
             gen_seq = torch.cat([gen_seq, next_token], dim=1)
-
-            if (next_token == eos_token).all():
+            if next_token.item() == eos_token:
                 break
-
+        
         return gen_seq
+

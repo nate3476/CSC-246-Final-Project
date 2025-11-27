@@ -9,49 +9,54 @@ import seaborn as sns
 
 
 def train_epoch(model, train_loader, optimizer, criterion, device, scheduler=None):
-
+    size = len(train_loader.dataset)
     model.train()
     total_loss = 0.0
     correct = 0
     total = 0
 
-    for batch_idx, (data, target) in enumerate(train_loader):
-
-        data, target = data.to(device), target.to(device)
+    for batch_idx, batch in enumerate(train_loader):
+        grades = batch['grades'].to(device).float().unsqueeze(1) # unsqueeze to ensure this is dim [batch_size,1]
+        seqs = batch['seqs'].to(device)
+        pad_mask = batch['pad_mask'].to(device)
 
         optimizer.zero_grad()
 
-        out = model(data)
+        # Replace -1 with the model's padding index before passing to model
+        seqs[seqs == -1] = model.pad_idx
 
-        loss = criterion(out,target)
+        out = model(seqs, grades=grades, pad_mask=pad_mask)
 
+        # compute prediction error
+        # out is (B, T, vocab_size), we need (B*T, vocab_size)
+        # seqs is (B, T) we need (B*T)
+        out_flat = out.view(-1, out.size(-1))
+        seqs_flat = seqs.view(-1)
+        loss = criterion(out_flat, seqs_flat)
+
+        # Backprop
         loss.backward()
-
         optimizer.step()
 
-        total_loss = total_loss + loss.item() * data.size(0)
+        total_loss += loss.item() * seqs.size(0)
 
-        _, predicted = torch.max(out, 1)
+        _, predicted = torch.max(out_flat, 1)
+        non_pad_mask = (seqs_flat != model.pad_idx)
 
-        correct = correct + (predicted == target).sum().item()
+        correct += ((predicted == seqs_flat) & non_pad_mask).sum().item()
+        total += non_pad_mask.sum().item()
 
-        total = total + target.size(0)
-
-        if batch_idx % 50 == 0:
-            print(f'Batch {batch_idx}/{len(train_loader)}, Loss: {loss.item():.4f}')
+        if batch_idx % (len(train_loader)//5) == 0:
+            print(f"loss: {loss.item():>7f}  [{batch_idx+1}/{len(train_loader)}]")
 
     if scheduler is not None:
-
       try:
           scheduler.step()
-
       except ZeroDivisionError:
-
           print("T_max is zero")
 
-    avg_loss = total_loss/total
-
-    accuracy = 100 * (correct/total)
+    avg_loss = total_loss/size
+    accuracy = 100 * (correct/total) if total > 0 else 0
 
     return avg_loss, accuracy
 
@@ -66,29 +71,30 @@ def validate_epoch(model, val_loader, criterion, device):
 
     with torch.no_grad():
 
-        for data, target in val_loader:
+        for batch in val_loader:
+            seqs = batch['seqs'].to(device)
+            grades = batch['grades'].to(device)
+            pad_mask = batch['pad_mask'].to(device)
 
-            data, target = data.to(device), target.to(device)
+            out = model(seqs, pad_mask=pad_mask)
 
-            out = model(data)
+            out_flat = out.view(-1, out.size(-1))
+            seqs_flat = seqs.view(-1)
+            loss = criterion(out_flat, seqs_flat)
 
-            loss = criterion(out,target)
+            total_loss = total_loss + loss.item() * seqs.size(0)
 
-            total_loss = total_loss + loss.item() * data.size(0)
+            _, predicted = torch.max(out_flat, 1)
 
-            _, predicted = torch.max(out, 1)
+            non_pad_mask = (seqs_flat != model.pad_idx)
+            correct = correct + ((predicted == seqs_flat) & non_pad_mask).sum().item()
+            total = total + non_pad_mask.sum().item()
 
-            correct = correct + (predicted == target).sum().item()
+            all_predictions.extend(predicted[non_pad_mask].cpu().numpy())
+            all_targets.extend(seqs_flat[non_pad_mask].cpu().numpy())
 
-            total = total + target.size(0)
-
-            all_predictions.extend(predicted.cpu().numpy())
-
-            all_targets.extend(target.cpu().numpy())
-
-    avg_loss = total_loss/total
-
-    accuracy = 100 * (correct/total)
+    avg_loss = total_loss/len(val_loader.dataset)
+    accuracy = 100 * (correct/total) if total > 0 else 0
 
     return avg_loss, accuracy, all_predictions, all_targets
 
