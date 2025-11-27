@@ -17,8 +17,7 @@ def main():
 
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  #TODO for everyone: Change data path to your local data path
-  dataset = KilterDataset("data_path", download = True)
+  dataset = KilterDataset("data", download = True)
 
   dataloader = DataLoader(dataset, batch_size=8, shuffle=True, collate_fn = climb_collate_fn)
 
