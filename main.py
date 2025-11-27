@@ -52,9 +52,9 @@ def main():
         pad_idx = decoder.pad_idx
         optimizer = torch.optim.AdamW(decoder.parameters(), lr=lr)
         criterion = nn.CrossEntropyLoss(ignore_index=pad_idx)
-        for _ in range(args.train):
+        for i in range(args.train):
             train_loss, train_acc = train_epoch(decoder, training_dataloader, optimizer, criterion, device)
-            print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%")
+            print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%, epoch [{i + 1}/{args.train}]")
         
         # save the model (I looked up how to do this)
         os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
