@@ -53,7 +53,7 @@ class ClimbDecoder(nn.Module):
         ########### Output ###########
         self.norm = nn.LayerNorm(embed_dim)  # not sure if this is necessary
         self.fc_out = nn.Linear(embed_dim,
-                                vocab_size)  # output from hidden states to the vocabulary. One logit per possible hold.
+                                vocab_size + 1)  # output from hidden states to the vocabulary. One logit per possible hold.
         # this is what we can calculate the loss of
 
         self.n_grades = n_grades
@@ -146,9 +146,10 @@ class ClimbDecoder(nn.Module):
         """
         self.eval()  # get out of training mode
 
-        gen_seq = torch.full((1, 1), bos_token, dtype=torch.long, device=device)
         if prompt is not None:
-            gen_seq = torch.cat([gen_seq, prompt], dim=1)
+            gen_seq = prompt.clone().to(device)
+        else:
+            gen_seq = torch.full((1, 1), bos_token, dtype=torch.long, device=device)
 
         grade_tensor = None
         if grade is not None:
@@ -159,7 +160,7 @@ class ClimbDecoder(nn.Module):
 
         print(f"generating climb with grade={grade}...")
         for i in range(max_len):
-            logits = self.forward(gen_seq, grades=grade_tensor, memory=memory)
+            logits = self.forward(gen_seq, grades=grade_tensor, memory=memory, pad_mask=None)
             next_token_logits = logits[:, -1, :] / temperature
             # print("Printing logits for next token as a test:")
             # torch.set_printoptions(threshold=10_000)
@@ -178,5 +179,4 @@ class ClimbDecoder(nn.Module):
             gen_seq = torch.cat([gen_seq, next_token], dim=1)
             if next_token.item() == eos_token:
                 break
-
         return gen_seq

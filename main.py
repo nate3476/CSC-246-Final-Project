@@ -91,12 +91,13 @@ def main():
             bos_token=bos_token,
             eos_token=eos_token,
             device=device,
-            prompt=prompt_seq_tensor
+            prompt=prompt_seq_tensor,
         )
 
     gen_list = generated.squeeze(0).cpu().tolist()
-    gen_list.append(1)
-    print(gen_list)
+    # make sure the sequence ends in eos_token
+    if gen_list[-1] != eos_token:
+        gen_list += [eos_token]
     show_climb(gen_list, 'data')
 
     print("the generated token ids for the climb is: ", gen_list)
