@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--train", type=int, default=0)
     parser.add_argument("--model_path", type=str, default="models/decoder.pt")
     parser.add_argument("--temperature", type=float, default=1.0)
+    parser.add_argument("--load", action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -36,7 +37,7 @@ def main():
     encoder = ClimbEncoder(vocab_size).to(device)
     decoder = ClimbDecoder(vocab_size=vocab_size, n_grades=n_grades).to(device)
 
-    if os.path.exists(args.model_path) and args.train == 0:
+    if os.path.exists(args.model_path) and (args.train == 0 or args.load == True):
         print(f"Loading model from {args.model_path}")
         loaded_model = torch.load(args.model_path, map_location=device)
         decoder.load_state_dict(loaded_model['model_state_dict'])
