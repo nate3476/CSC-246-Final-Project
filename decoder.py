@@ -149,11 +149,13 @@ class ClimbDecoder(nn.Module):
                 grade_tensor = grade.to(device)
 
         print(f"generating climb with grade={grade}...")
-        for _ in range(max_len):
+        for i in range(max_len):
             logits = self.forward(gen_seq, grades=grade_tensor, memory=memory)
-
             next_token_logits = logits[:, -1, :] / temperature
-            
+            print("Printing logits for next token as a test:")
+            torch.set_printoptions(threshold=10_000)
+            if i == 0:
+                print(next_token_logits)
             # sampling instead of argmax
             probs = torch.softmax(next_token_logits, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
