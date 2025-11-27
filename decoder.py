@@ -18,7 +18,7 @@ class ClimbDecoder(nn.Module):
         n_grades, # number of possible grades (12?)
         max_seq_len = 128, # should be changed
         embed_dim=256,
-        n_heads=9,
+        n_heads=8,
         num_layers=6,
         ff_dim = 512, # feed forward dimension, used in defining a layer
         dropout=0.1,
