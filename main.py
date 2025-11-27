@@ -59,6 +59,7 @@ def main():
     for _ in range(args.train):
       train_loss, train_acc = train_epoch(decoder, training_dataloader, optimizer, criterion, device)
       print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%")
+
     # save the model (I looked up how to do this)
     os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
     torch.save({
@@ -91,6 +92,7 @@ def main():
         
     generated = decoder.generate(
         # memory=mem,
+        grade=args.grade,
         max_len=128,
         bos_token=bos_token,
         eos_token=eos_token,

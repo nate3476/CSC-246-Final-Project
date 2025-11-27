@@ -126,9 +126,10 @@ class ClimbDecoder(nn.Module):
     #     return gen_seq
 
     ##### generate function without conditioning #####
-    def generate(self, grade=None, max_len=128, bos_token=0, eos_token=1, temperature=1.0, device=None, memory=None):
+    def generate(self, grade=5, max_len=128, bos_token=0, eos_token=1, temperature=1.0, device=None, memory=None):
         """
         inputs are:
+            grade: desired grade
             max_len: maximum sequence length to generate
             bos_token: start-of-sequence token
             eos_token: end-of-sequence token
