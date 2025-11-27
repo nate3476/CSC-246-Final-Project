@@ -105,8 +105,8 @@ def show_climb(climb, root, download=True):
 
     # set the background to be all black
     fig, ax = plt.subplots()
-    fig.patch.set_facecolor('dimgrey')
-    ax.set_facecolor('dimgrey')
+    fig.patch.set_facecolor('black')
+    ax.set_facecolor('black')
 
     # mapping from color labels to the display color
     color_map = {
@@ -119,13 +119,14 @@ def show_climb(climb, root, download=True):
     # iterate through the climb and get the point position and color of each hold in the climb
     points = []
     colors = []
-    index = 1
-    while climb[index] > 1:
-        hold = label_dict[climb[index]]
-        label, color = hold.split('r')
-        points.append(point_dict[int(label)])
-        colors.append(color_map[int(color)])
-        ax.annotate(climb[index], point_dict[int(label)], color='red')
+    index = 0
+    while climb[index] != 1:
+        if climb[index] != 0:
+            hold = label_dict[climb[index]]
+            label, color = hold.split('r')
+            points.append(point_dict[int(label)])
+            colors.append(color_map[int(color)])
+            ax.annotate(climb[index], point_dict[int(label)], color='red')
         index += 1
     x, y = zip(*points)
     marker_style = matplotlib.markers.MarkerStyle(marker='o', fillstyle='none')
@@ -173,7 +174,7 @@ def climb_one_hot(batch, root, download=True):
 
 
 def main():
-    climb = [0, 495, 491, 219, 496, 11, 124, 486, 497, 1]
+    climb = [0, 0, 495, 491, 219, 496, 11, 124, 486, 497, 1]
     show_climb(climb, 'data')
 
 
