@@ -75,12 +75,20 @@ def get_point_dict(database):
     return point_map
 
 
-def show_climb(climb, root, download=True):
+def get_grade_dict(database):
+    with sqlite3.connect(database) as conn:
+        grade_dict = {row[0]: row[1] for row in conn.execute("SELECT difficulty, boulder_name from difficulty_grades")}
+    return grade_dict
+
+
+def show_climb(climb, root, download=True, grade=None, display_tokens=False):
     """
     Generates an image of the given climb. Note it is assumed that token_dict.csv is present in root
     :param climb: a sequence of tokens
     :param root: the directory containing the Kilterboard database, token_dict csv, and board images
     :param download: whether to download the Kilterboard database, token_dict, and board images if they are not present
+    :param grade: optional parameter of the integer grade, to display above as a title
+    :param display_tokens: boolean parameter, whether to display tokens next to each hold
     """
 
     # make sure the Kilterboard database is present
@@ -126,7 +134,8 @@ def show_climb(climb, root, download=True):
             label, color = hold.split('r')
             points.append(point_dict[int(label)])
             colors.append(color_map[int(color)])
-            ax.annotate(climb[index], point_dict[int(label)], color='red')
+            if display_tokens:
+                ax.annotate(climb[index], point_dict[int(label)], color='red')
         index += 1
     x, y = zip(*points)
     marker_style = matplotlib.markers.MarkerStyle(marker='o', fillstyle='none')
@@ -137,6 +146,10 @@ def show_climb(climb, root, download=True):
     feet_img = Image.open(screw_on_path)
     plt.imshow(hands_img, origin='upper', extent=(-24, 168, 0, 156))
     plt.imshow(feet_img, origin='upper', extent=(-24, 168, 0, 156))
+
+    if grade is not None:
+        grade_dict = get_grade_dict(database)
+        plt.title(f"Grade: {grade_dict[grade]}", color="white")
 
     plt.show()
 

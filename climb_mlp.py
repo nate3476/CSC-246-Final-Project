@@ -6,18 +6,6 @@ import matplotlib.pyplot as plt
 from climb_data import KilterDataset, climb_collate_fn
 from climb_util import climb_one_hot
 
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-print(f"Using {device} device")
-
-# get the full dataset and split it into train and test
-full_dataset = KilterDataset(root='data', download=True)
-training_data, test_data = torch.utils.data.random_split(full_dataset, [0.8, 0.2])
-
-# set up the dataloaders
-batch_size = 64
-training_dataloader = DataLoader(training_data, batch_size=batch_size, collate_fn=climb_collate_fn)
-test_dataloader = DataLoader(test_data, batch_size=batch_size, collate_fn=climb_collate_fn)
-
 
 class NeuralNet(nn.Module):
     def __init__(self, root):
@@ -79,23 +67,46 @@ def test(dataloader, model, loss_fn):
     return mse, avg_loss
 
 
-model = NeuralNet(root='data').to(device)
+def main():
+    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+    print(f"Using {device} device")
 
-accuracies = []
-epochs = 20
-loss_fn = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-for t in range(epochs):
-    print(f"Epoch {t + 1}\n-------------------------------")
-    train(training_dataloader, model, loss_fn, optimizer)
-    accuracy, avg_loss = test(test_dataloader, model, loss_fn)
-    accuracies.append(accuracy)
+    # get the full dataset and split it into train and test
+    full_dataset = KilterDataset(root='data', download=True)
+    training_data, test_data = torch.utils.data.random_split(full_dataset, [0.8, 0.2])
 
-plt.plot(accuracies, label='MSE')
+    # set up the dataloaders
+    batch_size = 64
+    training_dataloader = DataLoader(training_data, batch_size=batch_size, collate_fn=climb_collate_fn)
+    test_dataloader = DataLoader(test_data, batch_size=batch_size, collate_fn=climb_collate_fn)
 
-plt.title('Mean Square Error per Epoch')
-plt.xlabel('Epoch')
-plt.ylabel('Mean Square Error')
-plt.legend()
+    model = NeuralNet(root='data').to(device)
 
-plt.show()
+    accuracies = []
+    epochs = 20
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    for t in range(epochs):
+        print(f"Epoch {t + 1}\n-------------------------------")
+        train(training_dataloader, model, loss_fn, optimizer)
+        accuracy, avg_loss = test(test_dataloader, model, loss_fn)
+        accuracies.append(accuracy)
+
+    # save the weights
+    torch.save({
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+    }, "models/mlp_grader.pt")
+
+    plt.plot(accuracies, label='MSE')
+
+    plt.title('Mean Square Error per Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Square Error')
+    plt.legend()
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
