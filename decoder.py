@@ -158,7 +158,7 @@ class ClimbDecoder(nn.Module):
             else:
                 grade_tensor = grade.to(device)
 
-        print(f"generating climb with grade={grade}...")
+        # print(f"generating climb with grade={grade}...")
         for i in range(max_len):
             logits = self.forward(gen_seq, grades=grade_tensor, memory=memory, pad_mask=None)
             next_token_logits = logits[:, -1, :] / temperature
