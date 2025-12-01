@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--model_path", type=str, default="models/decoder.pt")
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--load", action='store_true', default=False)
+    parser.add_argument("--metric", action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -46,6 +47,8 @@ def main():
     elif args.train == 0:
         print(f"Warning: No saved model found at {args.model_path}. Using untrained model.")
 
+    metric_loss = [] # just for data collection for report
+    metric_accuracy = [] # same
     if (args.train > 0):
         print(f"Beginning training for {args.train} epochs...")
         lr = 1e-4
@@ -55,6 +58,13 @@ def main():
         for i in range(args.train):
             train_loss, train_acc = train_epoch(decoder, training_dataloader, optimizer, criterion, device)
             print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%, epoch [{i + 1}/{args.train}]")
+            metric_loss.append(train_loss)
+            metric_accuracy.append(train_acc)
+    if(args.metric):
+        print("LOSS")
+        print(metric_loss)
+        print("ACCURACY")
+        print(metric_accuracy)
         
         # save the model (I looked up how to do this)
         os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
