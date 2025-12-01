@@ -60,11 +60,11 @@ def main():
             print(f"Average loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}%, epoch [{i + 1}/{args.train}]")
             metric_loss.append(train_loss)
             metric_accuracy.append(train_acc)
-    if(args.metric):
-        print("LOSS")
-        print(metric_loss)
-        print("ACCURACY")
-        print(metric_accuracy)
+        if(args.metric):
+            print("LOSS")
+            print(metric_loss)
+            print("ACCURACY")
+            print(metric_accuracy)
         
         # save the model (I looked up how to do this)
         os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
